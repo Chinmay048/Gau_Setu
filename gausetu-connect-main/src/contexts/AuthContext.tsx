@@ -1,12 +1,16 @@
-import React, { createContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useCallback, ReactNode } from 'react';
 import { authAPI } from '../lib/api';
 
 interface User {
   id: number;
   email: string;
-  farmName: string;
+  farmName?: string;
+  name?: string;
+  clinicName?: string;
+  region?: string;
+  accessLevel?: string;
   role: string;
-  type: string;
+  phoneNumber?: string;
 }
 
 interface AuthContextType {
@@ -14,7 +18,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string, role?: string) => Promise<any>;
+  loginOTP: (phone: string, otp: string) => Promise<any>;
   register: (data: any) => Promise<any>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -31,29 +36,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const saveAuth = (token: string, user: any, role: string) => {
+    const u = { ...user, role };
+    localStorage.setItem('token', token);
+    localStorage.setItem('userType', role);
+    localStorage.setItem('user', JSON.stringify(u));
+    setToken(token);
+    setUser(u);
+  };
+
+  const login = useCallback(async (email: string, password: string, role: string = 'farmer') => {
     setLoading(true);
     setError(null);
     try {
-      console.log('🔑 Attempting login for:', email);
-      const response = await authAPI.farmerLogin({ email, password });
-      console.log('✅ Login response received:', response.data);
-
-      const { token, user } = response.data;
-      const userWithType = { ...user, type: 'farmer' };
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('userType', 'farmer');
-      localStorage.setItem('user', JSON.stringify(userWithType));
-      
-      setToken(token);
-      setUser(userWithType);
-      console.log('✅ Login successful, token saved');
+      let response;
+      if (role === 'vet') {
+        response = await authAPI.vetLogin({ email, password });
+      } else if (role === 'government') {
+        response = await authAPI.govLogin({ email, password });
+      } else {
+        response = await authAPI.farmerLogin({ email, password });
+      }
+      saveAuth(response.data.token, response.data.user, role);
       return response.data;
     } catch (err: any) {
-      console.error('❌ Login error:', err);
-      console.error('❌ Error response:', err.response?.data);
       const errorMessage = err.response?.data?.error || 'Login failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loginOTP = useCallback(async (phone: string, otp: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authAPI.otpVerify(phone, otp);
+      saveAuth(response.data.token, response.data.user, 'farmer');
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'OTP verification failed';
       setError(errorMessage);
       throw err;
     } finally {
@@ -66,17 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       const response = await authAPI.farmerRegister(data);
-
       if (response.data.token) {
-        const { token, user } = response.data;
-        const userWithType = { ...user, type: 'farmer' };
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('userType', 'farmer');
-        localStorage.setItem('user', JSON.stringify(userWithType));
-        
-        setToken(token);
-        setUser(userWithType);
+        saveAuth(response.data.token, response.data.user, 'farmer');
       }
       return response.data;
     } catch (err: any) {
@@ -102,6 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     error,
     login,
+    loginOTP,
     register,
     logout,
     isAuthenticated: !!token,

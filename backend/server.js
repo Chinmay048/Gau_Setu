@@ -8,6 +8,13 @@ const errorHandler = require('./middleware/errorHandler');
 // Import routes
 const authRoutes = require('./routes/auth');
 const cowRoutes = require('./routes/cows');
+const vetRoutes = require('./routes/vet');
+const governmentRoutes = require('./routes/government');
+const marketplaceRoutes = require('./routes/marketplace');
+const milkRoutes = require('./routes/milk');
+const insuranceRoutes = require('./routes/insurance');
+const transferRoutes = require('./routes/transfer');
+const breedingRoutes = require('./routes/breeding');
 
 // Initialize app
 const app = express();
@@ -44,9 +51,15 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cows', cowRoutes);
+app.use('/api/vet', vetRoutes);
+app.use('/api/government', governmentRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/milk', milkRoutes);
+app.use('/api/insurance', insuranceRoutes);
+app.use('/api/transfer', transferRoutes);
+app.use('/api/breeding', breedingRoutes);
 
 // 404 handler
 app.use((req, res) => {

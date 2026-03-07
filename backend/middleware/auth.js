@@ -8,7 +8,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ error: 'No token, authorization denied' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gausetu-hackathon-secret-2026');
     req.userId = decoded.id;
     req.userRole = decoded.role;
     req.userType = decoded.type; // 'farmer'
