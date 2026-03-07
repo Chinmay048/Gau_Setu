@@ -1,9 +1,8 @@
 const cowService = require('../services/cowService');
-const Biometric = require('../models/Biometric');
 
 const registerCowNewborn = async (req, res) => {
   try {
-    const { rfidNumber, gender, birthDate, fatherId, motherId, photoUrl, noseImages } = req.body;
+    const { rfidNumber, gender, birthDate, fatherId, motherId, photoUrl, noseImages, breed } = req.body;
     const farmerId = req.userId;
 
     const cow = await cowService.registerCowNewborn({
@@ -15,11 +14,12 @@ const registerCowNewborn = async (req, res) => {
       motherId,
       photoUrl,
       noseImages,
+      breed,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Newborn calf registered successfully with biometric data',
+      message: 'Newborn calf registered successfully',
       cow,
     });
   } catch (error) {
@@ -29,7 +29,7 @@ const registerCowNewborn = async (req, res) => {
 
 const registerCowPurchased = async (req, res) => {
   try {
-    const { rfidNumber, gender, birthDate, photoUrl, noseImages } = req.body;
+    const { rfidNumber, gender, birthDate, photoUrl, noseImages, breed } = req.body;
     const farmerId = req.userId;
 
     const cow = await cowService.registerCowPurchased({
@@ -39,11 +39,13 @@ const registerCowPurchased = async (req, res) => {
       birthDate,
       photoUrl,
       noseImages,
+      breed,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Purchased cow registered successfully with biometric data',
+      message: 'Purchased cow registered successfully',
+      cow,
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -83,29 +85,6 @@ const getCowDetail = async (req, res) => {
   }
 };
 
-const updateCowDNA = async (req, res) => {
-  try {
-    const { cowId } = req.params;
-    const { dnaStatus, dnaReportUrl } = req.body;
-
-    const cow = await cowService.updateCow(cowId, {
-      dnaStatus,
-      dnaReport: {
-        reportUrl: dnaReportUrl,
-        uploadedAt: new Date(),
-      },
-    });
-
-    res.json({
-      success: true,
-      message: 'DNA status updated',
-      cow,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
 const addBiometricData = async (req, res) => {
   try {
     const { cowId } = req.params;
@@ -123,6 +102,110 @@ const addBiometricData = async (req, res) => {
   }
 };
 
+const getMatingRecommendations = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const recommendations = await cowService.getMatingRecommendations(cowId);
+
+    res.json({
+      success: true,
+      count: recommendations.length,
+      recommendations,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const uploadDNAReport = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const { dnaReportUrl } = req.body;
+
+    const cow = await cowService.uploadDNAReport(cowId, dnaReportUrl);
+
+    res.json({
+      success: true,
+      message: 'DNA report uploaded successfully',
+      cow,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const addVaccination = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const { vaccineName, administeredDate, nextDueDate, certificateUrl, administeredBy, notes } = req.body;
+
+    const vaccinations = await cowService.addVaccination({
+      cowId,
+      vaccineName,
+      administeredDate,
+      nextDueDate,
+      certificateUrl,
+      administeredBy,
+      notes,
+    });
+
+    res.json({
+      success: true,
+      message: 'Vaccination added successfully',
+      vaccinations,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const getVaccinationHistory = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const vaccinations = await cowService.getVaccinationHistory(cowId);
+
+    res.json({
+      success: true,
+      count: vaccinations.length,
+      vaccinations,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const getUpcomingVaccinations = async (req, res) => {
+  try {
+    const farmerId = req.userId;
+    const upcoming = await cowService.getUpcomingVaccinations(farmerId);
+
+    res.json({
+      success: true,
+      count: upcoming.length,
+      vaccinations: upcoming,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const updateCowDNA = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const { dnaStatus, dnaReportUrl } = req.body;
+
+    const cow = await cowService.uploadDNAReport(cowId, dnaReportUrl);
+
+    res.json({
+      success: true,
+      message: 'DNA status updated',
+      cow,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerCowNewborn,
   registerCowPurchased,
@@ -130,4 +213,9 @@ module.exports = {
   getCowDetail,
   updateCowDNA,
   addBiometricData,
+  getMatingRecommendations,
+  uploadDNAReport,
+  addVaccination,
+  getVaccinationHistory,
+  getUpcomingVaccinations,
 };

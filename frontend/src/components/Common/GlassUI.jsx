@@ -4,7 +4,7 @@ export const GlassCard = ({ children, className = '' }) => (
   </div>
 );
 
-export const GlassButton = ({ children, variant = 'primary', onClick, disabled = false, className = '' }) => {
+export const GlassButton = ({ children, variant = 'primary', onClick, disabled = false, type = 'button', className = '' }) => {
   const baseStyle = 'px-6 py-3 rounded-xl font-semibold transition-all duration-300 font-medium';
   
   const variants = {
@@ -16,6 +16,7 @@ export const GlassButton = ({ children, variant = 'primary', onClick, disabled =
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`${baseStyle} ${variants[variant]} ${className}`}

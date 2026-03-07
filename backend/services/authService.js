@@ -1,13 +1,13 @@
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Farmer = require('../models/Farmer');
-const Vet = require('../models/Vet');
+const { getDatabase } = require('../database/db');
 
 const generateToken = (user, type) => {
   return jwt.sign(
     {
-      id: user._id,
+      id: user.id,
       email: user.email,
-      role: user.role,
+      role: 'farmer',
       type: type,
     },
     process.env.JWT_SECRET,
@@ -16,80 +16,56 @@ const generateToken = (user, type) => {
 };
 
 const registerFarmer = async (email, password, farmName, phoneNumber, location) => {
-  const farmer = new Farmer({
-    email,
-    password,
-    farmName,
-    phoneNumber,
-    location,
-    role: 'farmer',
-  });
+  const db = getDatabase();
+  
+  // Check if farmer already exists
+  const existing = db.prepare('SELECT * FROM farmers WHERE email = ?').get(email);
+  if (existing) {
+    throw new Error('Email already registered');
+  }
 
-  await farmer.save();
-  return farmer;
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Insert farmer
+  const result = db.prepare(`
+    INSERT INTO farmers (email, password, farm_name, phone_number, location)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(email, hashedPassword, farmName, phoneNumber, location);
+
+  const farmer = db.prepare('SELECT id, email, farm_name as farmName, phone_number as phoneNumber, location FROM farmers WHERE id = ?')
+    .get(result.lastInsertRowid);
+
+  return { ...farmer, role: 'farmer' };
 };
 
 const loginFarmer = async (email, password) => {
-  const farmer = await Farmer.findOne({ email }).select('+password');
-
+  const db = getDatabase();
+  
+  const farmer = db.prepare('SELECT * FROM farmers WHERE email = ?').get(email);
+  
   if (!farmer) {
     throw new Error('Invalid credentials');
   }
 
-  const isPasswordValid = await farmer.comparePassword(password);
-
+  const isPasswordValid = await bcrypt.compare(password, farmer.password);
+  
   if (!isPasswordValid) {
     throw new Error('Invalid credentials');
   }
 
-  return farmer;
-};
-
-const registerVet = async (email, password, name, clinicName, licenseNumber, phoneNumber, address) => {
-  const vet = new Vet({
-    email,
-    password,
-    name,
-    clinicName,
-    licenseNumber,
-    phoneNumber,
-    address,
-    role: 'vet',
-    status: 'pending',
-  });
-
-  await vet.save();
-  return vet;
-};
-
-const loginVet = async (email, password) => {
-  const vet = await Vet.findOne({ email }).select('+password');
-
-  if (!vet) {
-    throw new Error('Invalid credentials');
-  }
-
-  if (vet.status === 'pending') {
-    throw new Error('Account pending admin approval');
-  }
-
-  if (vet.status === 'rejected') {
-    throw new Error('Account has been rejected');
-  }
-
-  const isPasswordValid = await vet.comparePassword(password);
-
-  if (!isPasswordValid) {
-    throw new Error('Invalid credentials');
-  }
-
-  return vet;
+  return {
+    id: farmer.id,
+    email: farmer.email,
+    farmName: farmer.farm_name,
+    phoneNumber: farmer.phone_number,
+    location: farmer.location,
+    role: 'farmer'
+  };
 };
 
 module.exports = {
   generateToken,
   registerFarmer,
   loginFarmer,
-  registerVet,
-  loginVet,
 };

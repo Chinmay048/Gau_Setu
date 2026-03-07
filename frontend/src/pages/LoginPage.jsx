@@ -17,10 +17,14 @@ export const LoginPage = ({ userType = 'farmer' }) => {
     setError('');
     setLoading(true);
 
+    console.log('🚀 Form submitted with:', { email, userType });
+
     try {
       await login(email, password, userType);
+      console.log('✅ Login complete, navigating to dashboard');
       navigate('/dashboard');
     } catch (err) {
+      console.error('❌ Login form error:', err);
       setError(err.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
@@ -60,7 +64,7 @@ export const LoginPage = ({ userType = 'farmer' }) => {
             variant="primary"
             className="w-full"
             disabled={loading}
-            onClick={handleSubmit}
+            type="submit"
           >
             {loading ? 'Logging in...' : 'Login'}
           </GlassButton>

@@ -2,25 +2,35 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
-const connectDB = require('./config/db');
+const { getDatabase } = require('./database/db');
 const errorHandler = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const cowRoutes = require('./routes/cows');
-const vaccinationRoutes = require('./routes/vaccinations');
-const vetRoutes = require('./routes/vet');
-const transferRoutes = require('./routes/transfers');
 
 // Initialize app
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to SQLite database
+try {
+  getDatabase();
+  console.log('✅ SQLite database connected');
+} catch (error) {
+  console.error('❌ Database connection error:', error);
+  process.exit(1);
+}
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:8080',
+    'http://10.252.52.7:8080'
+  ],
   credentials: true,
 }));
 
@@ -30,15 +40,13 @@ app.use(morgan('dev'));
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'Backend server is running' });
+  res.json({ status: 'Backend server is running with SQLite' });
 });
 
-// Routes
+// API Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cows', cowRoutes);
-app.use('/api/vaccinations', vaccinationRoutes);
-app.use('/api/vet', vetRoutes);
-app.use('/api/transfers', transferRoutes);
 
 // 404 handler
 app.use((req, res) => {

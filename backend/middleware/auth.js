@@ -1,6 +1,4 @@
 const jwt = require('jsonwebtoken');
-const Farmer = require('../models/Farmer');
-const Vet = require('../models/Vet');
 
 const auth = async (req, res, next) => {
   try {
@@ -13,7 +11,7 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.id;
     req.userRole = decoded.role;
-    req.userType = decoded.type; // 'farmer' or 'vet'
+    req.userType = decoded.type; // 'farmer'
 
     next();
   } catch (error) {

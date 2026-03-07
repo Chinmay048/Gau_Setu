@@ -8,12 +8,10 @@ import { Navbar } from './components/Common/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterFarmerPage from './pages/RegisterFarmerPage';
-import RegisterVetPage from './pages/RegisterVetPage';
 import DashboardPage from './pages/DashboardPage';
 import RegisterCowPage from './pages/RegisterCowPage';
 import CowDetailPage from './pages/CowDetailPage';
-import VetSearchCowPage from './pages/VetSearchCowPage';
-import VetCreateReportPage from './pages/VetCreateReportPage';
+import MatingRecommendationsPage from './pages/MatingRecommendationsPage';
 
 export default function App() {
   return (
@@ -25,15 +23,11 @@ export default function App() {
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
 
-              {/* Auth Routes */}
-              <Route path="/login-farmer" element={<PublicRoute><LoginPage userType="farmer" /></PublicRoute>} />
-              <Route path="/login-vet" element={<PublicRoute><LoginPage userType="vet" /></PublicRoute>} />
-              <Route path="/register-farmer" element={<PublicRoute><RegisterFarmerPage /></PublicRoute>} />
-              <Route path="/register-vet" element={<PublicRoute><RegisterVetPage /></PublicRoute>} />
+              {/* Auth Routes - Farmer Only */}
+              <Route path="/login" element={<PublicRoute><LoginPage userType="farmer" /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><RegisterFarmerPage /></PublicRoute>} />
 
-              {/* Protected Routes */}
-              <Route path="/login" element={<Navigate to="/login-farmer" />} />
-
+              {/* Protected Farmer Routes */}
               <Route
                 path="/dashboard"
                 element={
@@ -44,7 +38,6 @@ export default function App() {
                 }
               />
 
-              {/* Farmer Routes */}
               <Route
                 path="/register-cow"
                 element={
@@ -65,23 +58,12 @@ export default function App() {
                 }
               />
 
-              {/* Vet Routes */}
               <Route
-                path="/vet/search-cow"
+                path="/cow/:cowId/mating"
                 element={
-                  <ProtectedRoute allowedRoles={['vet']}>
+                  <ProtectedRoute allowedRoles={['farmer']}>
                     <Navbar />
-                    <VetSearchCowPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/vet/create-report/:cowId"
-                element={
-                  <ProtectedRoute allowedRoles={['vet']}>
-                    <Navbar />
-                    <VetCreateReportPage />
+                    <MatingRecommendationsPage />
                   </ProtectedRoute>
                 }
               />

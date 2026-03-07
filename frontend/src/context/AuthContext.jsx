@@ -17,21 +17,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = userType === 'farmer' 
-        ? await authAPI.farmerLogin({ email, password })
-        : await authAPI.vetLogin({ email, password });
+      console.log('🔑 Attempting login for:', email);
+      // Only farmer login is supported now
+      const response = await authAPI.farmerLogin({ email, password });
+      console.log('✅ Login response received:', response.data);
 
       const { token, user } = response.data;
-      const userWithType = { ...user, type: userType };
+      const userWithType = { ...user, type: 'farmer' };
       
       localStorage.setItem('token', token);
-      localStorage.setItem('userType', userType);
-      localStorage.setItem('user', JSON.stringify(userWithType)); // Save user data
+      localStorage.setItem('userType', 'farmer');
+      localStorage.setItem('user', JSON.stringify(userWithType));
       
       setToken(token);
       setUser(userWithType);
+      console.log('✅ Login successful, token saved');
       return response.data;
     } catch (err) {
+      console.error('❌ Login error:', err);
+      console.error('❌ Error response:', err.response?.data);
       const errorMessage = err.response?.data?.error || 'Login failed';
       setError(errorMessage);
       throw err;

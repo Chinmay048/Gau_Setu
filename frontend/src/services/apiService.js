@@ -11,6 +11,7 @@ const apiClient = axios.create({
 
 // Add token to headers
 apiClient.interceptors.request.use((config) => {
+  console.log('🌐 API Request:', config.method.toUpperCase(), config.url);
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -18,12 +19,22 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Auth APIs
+// Log responses and errors
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('✅ API Response:', response.config.url, response.status);
+    return response;
+  },
+  (error) => {
+    console.error('❌ API Error:', error.config?.url, error.response?.status, error.message);
+    return Promise.reject(error);
+  }
+);
+
+// Auth APIs - Farmer Only
 export const authAPI = {
   farmerRegister: (data) => apiClient.post('/auth/farmer/register', data),
   farmerLogin: (data) => apiClient.post('/auth/farmer/login', data),
-  vetRegister: (data) => apiClient.post('/auth/vet/register', data),
-  vetLogin: (data) => apiClient.post('/auth/vet/login', data),
 };
 
 // Cow APIs
@@ -32,31 +43,18 @@ export const cowAPI = {
   registerPurchased: (data) => apiClient.post('/cows/register/purchased', data),
   getMyCows: () => apiClient.get('/cows/my-cows'),
   getCowDetail: (cowId) => apiClient.get(`/cows/${cowId}`),
-  updateCowDNA: (cowId, data) => apiClient.put(`/cows/${cowId}/dna-status`, data),
+  addBiometric: (cowId, data) => apiClient.post(`/cows/${cowId}/add-biometric`, data),
+  uploadDNA: (cowId, data) => apiClient.post(`/cows/${cowId}/upload-dna`, data),
+  getMatingRecommendations: (cowId) => apiClient.get(`/cows/${cowId}/mating-recommendations`),
+  getAllAvailableBulls: () => apiClient.get('/cows/mating/available-bulls'),
+  calculateCompatibility: (cowId, bullId) => apiClient.get(`/cows/${cowId}/compatibility/${bullId}`),
 };
 
 // Vaccination APIs
 export const vaccinationAPI = {
-  addVaccination: (data) => apiClient.post('/vaccinations', data),
-  getHistory: (cowId) => apiClient.get(`/vaccinations/${cowId}/history`),
-  getUpcoming: (cowId) => apiClient.get(`/vaccinations/${cowId}/upcoming`),
-  verifyVaccination: (vaccinationId) => apiClient.put(`/vaccinations/${vaccinationId}/verify`),
-};
-
-// Vet APIs
-export const vetAPI = {
-  searchCow: (cowId) => apiClient.get(`/vet/cow/search/${cowId}`),
-  createReport: (data) => apiClient.post('/vet/report/create', data),
-  submitReport: (reportId, data) => apiClient.put(`/vet/report/${reportId}/submit`, data),
-  getHealthReports: (cowId) => apiClient.get(`/vet/report/cow/${cowId}`),
-  getMyReports: () => apiClient.get('/vet/reports/my-submissions'),
-};
-
-// Transfer APIs
-export const transferAPI = {
-  initiateTransfer: (data) => apiClient.post('/transfers/initiate', data),
-  completeTransfer: (transferId) => apiClient.put(`/transfers/${transferId}/complete`),
-  getPendingTransfers: () => apiClient.get('/transfers/pending'),
+  addVaccination: (cowId, data) => apiClient.post(`/cows/${cowId}/vaccinations`, data),
+  getHistory: (cowId) => apiClient.get(`/cows/${cowId}/vaccinations`),
+  getUpcoming: () => apiClient.get('/cows/vaccinations/upcoming/all'),
 };
 
 export default apiClient;

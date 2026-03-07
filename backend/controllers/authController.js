@@ -19,7 +19,7 @@ const registerFarmer = async (req, res) => {
       message: 'Farmer registration successful',
       token,
       user: {
-        id: farmer._id,
+        id: farmer.id,
         email: farmer.email,
         farmName: farmer.farmName,
         role: farmer.role,
@@ -42,7 +42,7 @@ const loginFarmer = async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: farmer._id,
+        id: farmer.id,
         email: farmer.email,
         farmName: farmer.farmName,
         role: farmer.role,

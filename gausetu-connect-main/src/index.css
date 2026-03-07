@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 30 50% 98%;
+    --foreground: 20 30% 12%;
+
+    --card: 30 40% 97%;
+    --card-foreground: 20 30% 12%;
+
+    --popover: 30 40% 97%;
+    --popover-foreground: 20 30% 12%;
+
+    --primary: 25 78% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 153 40% 33%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 30 20% 93%;
+    --muted-foreground: 20 10% 45%;
+
+    --accent: 20 60% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 25 78% 53%;
+
+    --radius: 0.75rem;
+
+    --saffron: 25 78% 53%;
+    --forest: 153 40% 33%;
+    --terracotta: 20 60% 42%;
+    --cream: 30 50% 98%;
+    --deep-brown: 20 30% 12%;
+    --gold: 40 85% 55%;
+
+    --sidebar-background: 30 30% 96%;
+    --sidebar-foreground: 20 30% 12%;
+    --sidebar-primary: 25 78% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 153 40% 33%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 30 20% 88%;
+    --sidebar-ring: 25 78% 53%;
+  }
+
+  .dark {
+    --background: 20 30% 8%;
+    --foreground: 30 20% 93%;
+    --card: 20 25% 12%;
+    --card-foreground: 30 20% 93%;
+    --popover: 20 25% 12%;
+    --popover-foreground: 30 20% 93%;
+    --primary: 25 78% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 153 40% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 20 15% 18%;
+    --muted-foreground: 30 10% 60%;
+    --accent: 20 60% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 15% 20%;
+    --input: 20 15% 20%;
+    --ring: 25 78% 53%;
+    --sidebar-background: 20 25% 10%;
+    --sidebar-foreground: 30 20% 93%;
+    --sidebar-primary: 25 78% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 153 40% 33%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 20 15% 20%;
+    --sidebar-ring: 25 78% 53%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-outfit;
+  }
+}
+
+@layer utilities {
+  .text-gradient-saffron {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--saffron)), hsl(var(--gold)));
+  }
+  .bg-gradient-saffron {
+    background-image: linear-gradient(135deg, hsl(var(--saffron)), hsl(var(--gold)));
+  }
+  .bg-gradient-forest {
+    background-image: linear-gradient(135deg, hsl(var(--forest)), hsl(153 50% 25%));
+  }
+  .bg-gradient-hero {
+    background-image: linear-gradient(135deg, hsl(var(--cream)), hsl(30 40% 94%));
+  }
+  .shadow-saffron {
+    box-shadow: 0 10px 40px -10px hsl(var(--saffron) / 0.3);
+  }
+  .shadow-forest {
+    box-shadow: 0 10px 40px -10px hsl(var(--forest) / 0.3);
+  }
+}
