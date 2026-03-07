@@ -1,10 +1,14 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { authAPI } from '../services/apiService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Restore user and token from localStorage on initialization
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,10 +22,14 @@ export const AuthProvider = ({ children }) => {
         : await authAPI.vetLogin({ email, password });
 
       const { token, user } = response.data;
+      const userWithType = { ...user, type: userType };
+      
       localStorage.setItem('token', token);
       localStorage.setItem('userType', userType);
+      localStorage.setItem('user', JSON.stringify(userWithType)); // Save user data
+      
       setToken(token);
-      setUser({ ...user, type: userType });
+      setUser(userWithType);
       return response.data;
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Login failed';
@@ -42,10 +50,14 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data.token) {
         const { token, user } = response.data;
+        const userWithType = { ...user, type: userType };
+        
         localStorage.setItem('token', token);
         localStorage.setItem('userType', userType);
+        localStorage.setItem('user', JSON.stringify(userWithType)); // Save user data
+        
         setToken(token);
-        setUser({ ...user, type: userType });
+        setUser(userWithType);
       }
       return response.data;
     } catch (err) {
@@ -60,6 +72,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   }, []);

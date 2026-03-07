@@ -3,7 +3,7 @@ const Biometric = require('../models/Biometric');
 
 const registerCowNewborn = async (req, res) => {
   try {
-    const { rfidNumber, gender, birthDate, fatherId, motherId, photoUrl } = req.body;
+    const { rfidNumber, gender, birthDate, fatherId, motherId, photoUrl, noseImages } = req.body;
     const farmerId = req.userId;
 
     const cow = await cowService.registerCowNewborn({
@@ -14,11 +14,12 @@ const registerCowNewborn = async (req, res) => {
       fatherId,
       motherId,
       photoUrl,
+      noseImages,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Newborn calf registered successfully',
+      message: 'Newborn calf registered successfully with biometric data',
       cow,
     });
   } catch (error) {
@@ -28,7 +29,7 @@ const registerCowNewborn = async (req, res) => {
 
 const registerCowPurchased = async (req, res) => {
   try {
-    const { rfidNumber, gender, birthDate, photoUrl } = req.body;
+    const { rfidNumber, gender, birthDate, photoUrl, noseImages } = req.body;
     const farmerId = req.userId;
 
     const cow = await cowService.registerCowPurchased({
@@ -37,12 +38,12 @@ const registerCowPurchased = async (req, res) => {
       gender,
       birthDate,
       photoUrl,
+      noseImages,
     });
 
     res.status(201).json({
       success: true,
-      message: 'Purchased cow registered successfully',
-      cow,
+      message: 'Purchased cow registered successfully with biometric data',
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -105,10 +106,28 @@ const updateCowDNA = async (req, res) => {
   }
 };
 
+const addBiometricData = async (req, res) => {
+  try {
+    const { cowId } = req.params;
+    const { noseImages } = req.body;
+
+    const cow = await cowService.addBiometricData(cowId, noseImages);
+
+    res.json({
+      success: true,
+      message: 'Biometric data added successfully',
+      cow,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerCowNewborn,
   registerCowPurchased,
   getCowsByFarmer,
   getCowDetail,
   updateCowDNA,
+  addBiometricData,
 };

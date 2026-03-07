@@ -12,5 +12,6 @@ router.post('/register/purchased', cowController.registerCowPurchased);
 router.get('/my-cows', cowController.getCowsByFarmer);
 router.get('/:cowId', cowController.getCowDetail);
 router.put('/:cowId/dna-status', cowController.updateCowDNA);
+router.post('/:cowId/add-biometric', cowController.addBiometricData);
 
 module.exports = router;

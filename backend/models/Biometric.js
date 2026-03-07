@@ -8,11 +8,26 @@ const BiometricSchema = new mongoose.Schema(
       required: [true, 'Cow ID is required'],
       unique: true,
     },
+    noseprintId: {
+      type: String,
+      required: [true, 'Noseprint ID from ML model is required'],
+      unique: true,
+    },
     noseTemplate: {
       type: String,
       required: [true, 'Nose biometric template is required'],
     },
-    noseImageUrl: String,
+    noseSamples: [{
+      imageUrl: String,
+      capturedAt: {
+        type: Date,
+        default: Date.now,
+      }
+    }],
+    sampleCount: {
+      type: Number,
+      default: 0,
+    },
     biometricScore: {
       type: Number,
       default: 0,
