@@ -51,6 +51,26 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan('dev'));
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Gau Setu Backend API', 
+    status: 'running',
+    baseUrl: 'https://backend-steel-two-36.vercel.app/api',
+    endpoints: {
+      auth: '/api/auth',
+      cows: '/api/cows',
+      vet: '/api/vet',
+      government: '/api/government',
+      marketplace: '/api/marketplace',
+      milk: '/api/milk',
+      insurance: '/api/insurance',
+      transfer: '/api/transfer',
+      breeding: '/api/breeding'
+    }
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Backend server is running with SQLite', environment: process.env.NODE_ENV });
