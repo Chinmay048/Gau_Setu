@@ -28,17 +28,27 @@ try {
   process.exit(1);
 }
 
-// Middleware
+// Middleware - CORS Configuration
+// Parse frontend URLs from environment or use defaults
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map(url => url.trim());
+
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:8080',
-    'http://10.252.52.7:8080'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Log CORS rejection for debugging
+      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+      console.log(`✓ Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(null, false);
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json({ limit: '50mb' }));

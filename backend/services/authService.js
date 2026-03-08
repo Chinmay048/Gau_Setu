@@ -4,6 +4,14 @@ const { getDatabase } = require('../database/db');
 
 const MOCK_OTP = '123456';
 
+// JWT Configuration - Centralized
+const JWT_SECRET = process.env.JWT_SECRET || 'gausetu-hackathon-secret-2026';
+const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
+
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  JWT_SECRET not set in environment - using default (NOT SECURE FOR PRODUCTION)');
+}
+
 const generateToken = (user, role) => {
   return jwt.sign(
     {
@@ -12,8 +20,8 @@ const generateToken = (user, role) => {
       role: role || user.role || 'farmer',
       type: role || user.role || 'farmer',
     },
-    process.env.JWT_SECRET || 'gausetu-hackathon-secret-2026',
-    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRE }
   );
 };
 
