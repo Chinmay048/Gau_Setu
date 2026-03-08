@@ -4,6 +4,26 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { getDatabase } = require('../database/db');
 const errorHandler = require('../middleware/errorHandler');
+const fs = require('fs');
+const path = require('path');
+
+// Initialize database on startup
+const initializeDatabase = () => {
+  const dbPath = path.join(__dirname, '../database/livestock.db');
+  const dbExists = fs.existsSync(dbPath);
+  
+  if (!dbExists) {
+    console.log('🗄️  Database not found, initializing...');
+    try {
+      require('../database/init');
+    } catch (error) {
+      console.error('❌ Error initializing database:', error.message);
+    }
+  }
+};
+
+// Run initialization
+initializeDatabase();
 
 // Import routes
 const authRoutes = require('../routes/auth');
