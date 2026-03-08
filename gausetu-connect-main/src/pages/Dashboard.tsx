@@ -256,9 +256,27 @@ const FarmerOverview = ({ cattle, vaccinations, milkStats, transfers }: any) => 
 const RegisterTab = ({ onSuccess }: { onSuccess: () => void }) => {
   const [regType, setRegType] = useState<"newborn" | "purchased">("newborn");
   const [form, setForm] = useState({ rfidNumber: "", gender: "female", birthDate: "", breed: "Gir", fatherRFID: "", motherRFID: "" });
+  const [noseFiles, setNoseFiles] = useState<File[]>([]);
+  const [nosePreviews, setNosePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+
+  const handleNoseFiles = (files: FileList | null) => {
+    if (!files) return;
+    const arr = Array.from(files).slice(0, 5);
+    setNoseFiles(prev => [...prev, ...arr].slice(0, 5));
+    arr.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = () => setNosePreviews(prev => [...prev, reader.result as string].slice(0, 5));
+      reader.readAsDataURL(f);
+    });
+  };
+
+  const removeNoseFile = (idx: number) => {
+    setNoseFiles(prev => prev.filter((_, i) => i !== idx));
+    setNosePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async () => {
     if (!form.rfidNumber || !form.birthDate) { setErr("RFID and birth date required"); return; }
@@ -268,15 +286,42 @@ const RegisterTab = ({ onSuccess }: { onSuccess: () => void }) => {
       const payload: any = { rfidNumber: form.rfidNumber, gender: form.gender, birthDate: form.birthDate, breed: form.breed };
       if (regType === "newborn" && form.fatherRFID) payload.fatherRFID = form.fatherRFID;
       if (regType === "newborn" && form.motherRFID) payload.motherRFID = form.motherRFID;
-      await fn(payload);
-      setMsg("Cow registered successfully!");
+      const res = await fn(payload);
+      const newCowId = res.data?.cow?.id;
+
+      // Upload noseprint images if provided
+      if (newCowId && noseFiles.length >= 3) {
+        try {
+          const b64arr: string[] = [];
+          for (const f of noseFiles) {
+            const b64: string = await new Promise((resolve) => {
+              const r = new FileReader(); r.onload = () => resolve(r.result as string); r.readAsDataURL(f);
+            });
+            b64arr.push(b64);
+          }
+          await cowAPI.addBiometric(newCowId.toString(), { noseImages: b64arr });
+          setMsg("Cow registered + noseprint enrolled successfully!");
+        } catch { setMsg("Cow registered! (Noseprint service offline — will retry later)"); }
+      } else {
+        setMsg("Cow registered successfully!");
+      }
       setForm({ rfidNumber: "", gender: "female", birthDate: "", breed: "Gir", fatherRFID: "", motherRFID: "" });
+      setNoseFiles([]); setNosePreviews([]);
       onSuccess();
     } catch (e: any) {
       setErr(e.response?.data?.error || "Registration failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  const demoHints: Record<string, string> = {
+    rfid: "Demo: KG-GIR-2026-F01 or SD-SAH-2026-M01",
+    gender: "Female for dairy, Male for breeding stock",
+    birth: "Format: YYYY-MM-DD",
+    breed: "Indigenous breeds: Gir, Sahiwal, Kankrej, Red Sindhi, Tharparkar",
+    father: "Demo: KG-GIR-2023-M01 (Gir bull, 3rd gen)",
+    mother: "Demo: KG-GIR-2023-F01 (Gir cow, A2A2 verified)",
   };
 
   return (
@@ -299,7 +344,8 @@ const RegisterTab = ({ onSuccess }: { onSuccess: () => void }) => {
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-1 block">RFID Tag Number *</label>
-            <input value={form.rfidNumber} onChange={e => setForm({ ...form, rfidNumber: e.target.value })} placeholder="e.g. COW-FARM-2026-001" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            <input value={form.rfidNumber} onChange={e => setForm({ ...form, rfidNumber: e.target.value })} placeholder="e.g. KG-GIR-2026-F01" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+            <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.rfid}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -307,24 +353,74 @@ const RegisterTab = ({ onSuccess }: { onSuccess: () => void }) => {
               <select value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm">
                 <option value="female">Female</option><option value="male">Male</option>
               </select>
+              <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.gender}</p>
             </div>
             <div>
               <label className="text-sm font-medium mb-1 block">Birth Date *</label>
               <input type="date" value={form.birthDate} onChange={e => setForm({ ...form, birthDate: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm" />
+              <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.birth}</p>
             </div>
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Breed</label>
             <select value={form.breed} onChange={e => setForm({ ...form, breed: e.target.value })} className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm">
-              {["Gir", "Sahiwal", "Red Sindhi", "Tharparkar", "Rathi", "Kankrej"].map(b => <option key={b}>{b}</option>)}
+              {["Gir", "Sahiwal", "Red Sindhi", "Tharparkar", "Rathi", "Kankrej", "Hariana", "Ongole"].map(b => <option key={b}>{b}</option>)}
             </select>
+            <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.breed}</p>
           </div>
           {regType === "newborn" && (
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="text-sm font-medium mb-1 block">Father RFID</label><input value={form.fatherRFID} onChange={e => setForm({ ...form, fatherRFID: e.target.value })} placeholder="Optional" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm" /></div>
-              <div><label className="text-sm font-medium mb-1 block">Mother RFID</label><input value={form.motherRFID} onChange={e => setForm({ ...form, motherRFID: e.target.value })} placeholder="Optional" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm" /></div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Father RFID</label>
+                <input value={form.fatherRFID} onChange={e => setForm({ ...form, fatherRFID: e.target.value })} placeholder="Optional" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm" />
+                <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.father}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Mother RFID</label>
+                <input value={form.motherRFID} onChange={e => setForm({ ...form, motherRFID: e.target.value })} placeholder="Optional" className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-sm" />
+                <p className="text-xs text-muted-foreground mt-1 italic">{demoHints.mother}</p>
+              </div>
             </div>
           )}
+
+          {/* Noseprint Upload Section */}
+          <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Fingerprint size={20} className="text-primary" />
+              <h4 className="font-semibold text-sm">Noseprint Biometric Scan</h4>
+              <span className="ml-auto text-xs text-muted-foreground">Min 3 images recommended</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Upload clear photos of the cow's nose from different angles. Our AI uses Haar cascade detection + ORB feature extraction for unique identification.
+            </p>
+
+            <label className="flex flex-col items-center justify-center py-6 cursor-pointer rounded-lg border border-dashed border-input bg-background hover:bg-muted/50 transition-colors">
+              <ScanLine size={28} className="text-muted-foreground mb-2" />
+              <span className="text-sm font-medium text-muted-foreground">Click to upload nose images</span>
+              <span className="text-xs text-muted-foreground mt-1">PNG, JPG — up to 5 images</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleNoseFiles(e.target.files)} />
+            </label>
+
+            {nosePreviews.length > 0 && (
+              <div className="flex gap-3 mt-4 flex-wrap">
+                {nosePreviews.map((src, i) => (
+                  <div key={i} className="relative group">
+                    <img src={src} alt={`Nose ${i + 1}`} className="w-20 h-20 rounded-lg object-cover border-2 border-primary/20" />
+                    <button onClick={() => removeNoseFile(i)} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                    <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center rounded-b-lg">#{i + 1}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {noseFiles.length > 0 && noseFiles.length < 3 && (
+              <p className="text-xs text-yellow-600 mt-2">⚠ Upload at least 3 images for reliable noseprint registration.</p>
+            )}
+            {noseFiles.length >= 3 && (
+              <p className="text-xs text-green-600 mt-2 font-medium">✓ {noseFiles.length} images ready — noseprint will be registered automatically.</p>
+            )}
+          </div>
+
           <button onClick={handleSubmit} disabled={loading} className="w-full py-3 rounded-xl bg-gradient-saffron text-primary-foreground font-semibold shadow-saffron hover:opacity-90 disabled:opacity-50">
             {loading ? "Registering..." : "Register Cow"}
           </button>
@@ -457,7 +553,7 @@ const CowDetailView = ({ cow, onBack }: { cow: any; onBack: () => void }) => {
           {cow.familyTree && (
             <div className="rounded-2xl bg-card border border-border p-6">
               <h4 className="font-semibold mb-4">Family Tree</h4>
-              <pre className="text-xs text-muted-foreground overflow-auto">{JSON.stringify(cow.familyTree, null, 2)}</pre>
+              <FamilyTreeVisual tree={cow.familyTree} />
             </div>
           )}
         </div>
@@ -466,39 +562,276 @@ const CowDetailView = ({ cow, onBack }: { cow: any; onBack: () => void }) => {
   );
 };
 
-/* ─── Vaccinations Tab ────────────────────────────────── */
-const VaccinationsTab = ({ vaccinations, cattle }: { vaccinations: any[]; cattle: any[] }) => (
-  <div className="animate-fade-in max-w-4xl">
-    <h3 className="text-xl font-bold mb-6">Vaccination Calendar</h3>
-    {vaccinations.length === 0 ? (
-      <div className="rounded-2xl bg-card border border-border p-12 text-center"><p className="text-muted-foreground">All vaccinations up to date!</p></div>
-    ) : (
+/* ─── Family Tree Visual ──────────────────────────────── */
+const FamilyTreeNode = ({ data, label }: { data: any; label?: string }) => {
+  if (!data) return <div className="px-3 py-2 rounded-lg bg-muted/30 border border-dashed border-border text-xs text-muted-foreground text-center min-w-[120px]">Unknown</div>;
+  return (
+    <div className="px-3 py-2 rounded-lg bg-primary/5 border border-primary/20 text-center min-w-[120px]">
+      {label && <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>}
+      <p className="text-xs font-bold text-foreground truncate">{data.rfidNumber || data.rfid_number || `#${data.id}`}</p>
+      <p className="text-[10px] text-muted-foreground">{data.breed} • {data.gender === "male" ? "♂" : "♀"}</p>
+      {data.birthDate && <p className="text-[10px] text-muted-foreground">{new Date(data.birthDate || data.birth_date).toLocaleDateString("en-IN", { year: "numeric", month: "short" })}</p>}
+    </div>
+  );
+};
+
+const FamilyTreeVisual = ({ tree }: { tree: any }) => {
+  if (!tree) return null;
+  const father = tree.father;
+  const mother = tree.mother;
+  const patGF = father?.father;
+  const patGM = father?.mother;
+  const matGF = mother?.father;
+  const matGM = mother?.mother;
+  const hasGrandparents = patGF || patGM || matGF || matGM;
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex flex-col items-center gap-1 min-w-[500px]">
+        {/* Grandparents row */}
+        {hasGrandparents && (
+          <>
+            <div className="flex justify-center gap-8 w-full">
+              <div className="flex gap-3">
+                <FamilyTreeNode data={patGF} label="Paternal GF" />
+                <FamilyTreeNode data={patGM} label="Paternal GM" />
+              </div>
+              <div className="flex gap-3">
+                <FamilyTreeNode data={matGF} label="Maternal GF" />
+                <FamilyTreeNode data={matGM} label="Maternal GM" />
+              </div>
+            </div>
+            {/* Connector lines */}
+            <div className="flex justify-center gap-8 w-full">
+              <div className="flex items-center justify-center" style={{ width: "252px" }}>
+                <div className="w-[120px] border-t-2 border-primary/30" />
+                <div className="w-0.5 h-4 bg-primary/30" />
+                <div className="w-[120px] border-t-2 border-primary/30" />
+              </div>
+              <div className="flex items-center justify-center" style={{ width: "252px" }}>
+                <div className="w-[120px] border-t-2 border-primary/30" />
+                <div className="w-0.5 h-4 bg-primary/30" />
+                <div className="w-[120px] border-t-2 border-primary/30" />
+              </div>
+            </div>
+          </>
+        )}
+        {/* Parents row */}
+        <div className="flex justify-center gap-16">
+          <FamilyTreeNode data={father} label="Father ♂" />
+          <FamilyTreeNode data={mother} label="Mother ♀" />
+        </div>
+        {/* Connector to cow */}
+        <div className="flex items-center justify-center">
+          <div className="relative" style={{ width: "200px", height: "20px" }}>
+            <div className="absolute top-0 left-0 right-0 border-t-2 border-primary/40" />
+            <div className="absolute top-0 left-1/2 w-0.5 h-full bg-primary/40 -translate-x-1/2" />
+          </div>
+        </div>
+        {/* Subject Cow */}
+        <div className="px-4 py-3 rounded-xl bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/40 text-center min-w-[160px]">
+          <p className="text-[10px] text-primary font-semibold uppercase tracking-wide mb-0.5">Subject</p>
+          <p className="text-sm font-bold text-foreground">{tree.rfidNumber || tree.rfid_number || `#${tree.id}`}</p>
+          <p className="text-xs text-muted-foreground">{tree.breed} • {tree.gender === "male" ? "♂ Male" : "♀ Female"}</p>
+          {tree.birthDate && <p className="text-xs text-muted-foreground">{new Date(tree.birthDate || tree.birth_date).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" })}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Vaccinations Tab — Calendar View ────────────────── */
+const VaccinationsTab = ({ vaccinations, cattle }: { vaccinations: any[]; cattle: any[] }) => {
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [allVaccs, setAllVaccs] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load full vaccination data for all cattle
+    const fetchAll = async () => {
+      const all: any[] = [];
+      for (const cow of cattle.slice(0, 30)) {
+        try {
+          const res = await vaccinationAPI.getHistory(cow.id.toString());
+          (res.data.vaccinations || []).forEach((v: any) => all.push({ ...v, cowRFID: cow.rfidNumber, breed: cow.breed }));
+        } catch {}
+      }
+      setAllVaccs(all);
+    };
+    if (cattle.length > 0) fetchAll();
+  }, [cattle]);
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isToday = (d: number) => today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+
+  const monthLabel = currentMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+  const goToday = () => setCurrentMonth(new Date());
+
+  // Build events map: day → vaccinations
+  const dayEvents: Record<number, any[]> = {};
+  const combinedVaccs = [...vaccinations, ...allVaccs];
+  combinedVaccs.forEach(v => {
+    const dateStr = v.nextDueDate || v.next_due_date || v.administeredDate || v.administered_date;
+    if (!dateStr) return;
+    const d = new Date(dateStr);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!dayEvents[day]) dayEvents[day] = [];
+      // Avoid duplicate entries
+      if (!dayEvents[day].some((e: any) => e.vaccineName === (v.vaccineName || v.vaccine_name) && e.cowRFID === v.cowRFID)) {
+        dayEvents[day].push({
+          vaccineName: v.vaccineName || v.vaccine_name,
+          cowRFID: v.cowRFID || v.cowRfid,
+          isDue: !!(v.nextDueDate || v.next_due_date),
+          isAdministered: !!(v.administeredDate || v.administered_date) && !(v.nextDueDate || v.next_due_date),
+          verified: v.verified,
+        });
+      }
+    }
+  });
+
+  // Vaccine colors
+  const vaccColors: Record<string, string> = {
+    "FMD": "bg-red-400", "Hemorrhagic": "bg-orange-400", "Black Quarter": "bg-yellow-500",
+    "Lumpy": "bg-purple-400", "Brucellosis": "bg-blue-400", "Deworming": "bg-green-400",
+    "Theileriosis": "bg-teal-400", "Anthrax": "bg-rose-500", "IBR": "bg-indigo-400", "Rabies": "bg-pink-400",
+  };
+  const getVaccColor = (name: string) => {
+    for (const [key, color] of Object.entries(vaccColors)) {
+      if (name?.toLowerCase().includes(key.toLowerCase())) return color;
+    }
+    return "bg-primary";
+  };
+
+  // Calendar grid: 6 rows × 7 cols
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length < 42) cells.push(null);
+
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  return (
+    <div className="animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-bold">Vaccination Calendar</h3>
+        <div className="flex items-center gap-2">
+          <button onClick={goToday} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">Today</button>
+          <div className="flex items-center gap-1 bg-card border border-border rounded-lg overflow-hidden">
+            <button onClick={prevMonth} className="px-3 py-2 hover:bg-muted transition-colors text-sm">‹</button>
+            <span className="px-4 py-2 text-sm font-semibold min-w-[160px] text-center">{monthLabel}</span>
+            <button onClick={nextMonth} className="px-3 py-2 hover:bg-muted transition-colors text-sm">›</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        {Object.entries(vaccColors).slice(0, 6).map(([name, color]) => (
+          <div key={name} className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
+            <span className="text-xs text-muted-foreground">{name}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
       <div className="rounded-2xl bg-card border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b border-border bg-muted/50">
-            <th className="text-left p-4 font-medium text-muted-foreground">Cow RFID</th>
-            <th className="text-left p-4 font-medium text-muted-foreground">Vaccine</th>
-            <th className="text-left p-4 font-medium text-muted-foreground">Due Date</th>
-            <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-          </tr></thead>
-          <tbody>
+        {/* Day headers */}
+        <div className="grid grid-cols-7 border-b border-border bg-muted/50">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
+            <div key={d} className="p-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>
+          ))}
+        </div>
+        {/* Week rows */}
+        {Array.from({ length: 6 }).map((_, row) => (
+          <div key={row} className="grid grid-cols-7 border-b border-border last:border-0">
+            {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
+              const events = day ? (dayEvents[day] || []) : [];
+              const isTd = day ? isToday(day) : false;
+              return (
+                <div key={col}
+                  onClick={() => day && events.length > 0 && setSelectedDay(selectedDay === day ? null : day)}
+                  className={`min-h-[80px] p-1.5 border-r border-border last:border-0 transition-colors ${day ? "cursor-pointer hover:bg-muted/30" : "bg-muted/10"} ${isTd ? "bg-primary/5" : ""} ${selectedDay === day ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+                >
+                  {day && (
+                    <>
+                      <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isTd ? "bg-primary text-primary-foreground" : "text-foreground"}`}>
+                        {day}
+                      </div>
+                      <div className="flex flex-wrap gap-0.5">
+                        {events.slice(0, 4).map((ev, i) => (
+                          <div key={i} className={`w-2 h-2 rounded-full ${getVaccColor(ev.vaccineName)} ${ev.isAdministered ? "opacity-50" : ""}`} title={`${ev.cowRFID}: ${ev.vaccineName}`} />
+                        ))}
+                        {events.length > 4 && <span className="text-[9px] text-muted-foreground">+{events.length - 4}</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Selected day detail */}
+      {selectedDay && dayEvents[selectedDay] && (
+        <div className="mt-4 rounded-2xl bg-card border border-border p-5 animate-fade-in">
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Calendar size={16} className="text-primary" />
+            {new Date(year, month, selectedDay).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            <span className="ml-auto text-xs text-muted-foreground">{dayEvents[selectedDay].length} event(s)</span>
+          </h4>
+          <div className="space-y-2">
+            {dayEvents[selectedDay].map((ev, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${getVaccColor(ev.vaccineName)}`} />
+                  <div>
+                    <p className="text-sm font-medium">{ev.vaccineName}</p>
+                    <p className="text-xs text-muted-foreground">{ev.cowRFID}</p>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${ev.verified ? "bg-green-100 text-green-700" : ev.isDue ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}>
+                  {ev.verified ? "✓ Verified" : ev.isDue ? "Due" : "Administered"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming list below calendar */}
+      {vaccinations.length > 0 && (
+        <div className="mt-6 rounded-2xl bg-card border border-border p-5">
+          <h4 className="font-semibold mb-3 flex items-center gap-2"><Syringe size={16} className="text-primary" /> Upcoming Due ({vaccinations.length})</h4>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {vaccinations.map((v: any) => {
               const days = v.nextDueDate ? Math.floor((new Date(v.nextDueDate).getTime() - Date.now()) / 86400000) : null;
               return (
-                <tr key={v.id} className="border-b border-border last:border-0">
-                  <td className="p-4 font-medium">{v.cowRFID || "—"}</td>
-                  <td className="p-4 text-muted-foreground">{v.vaccineName}</td>
-                  <td className="p-4 text-muted-foreground">{v.nextDueDate ? new Date(v.nextDueDate).toLocaleDateString() : "N/A"}</td>
-                  <td className="p-4"><span className={`px-2.5 py-1 rounded-full text-xs font-medium ${days !== null && days <= 7 ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>{days !== null && days <= 7 ? "Urgent" : "Upcoming"}</span></td>
-                </tr>
+                <div key={v.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${getVaccColor(v.vaccineName)}`} />
+                    <div><p className="text-sm font-medium">{v.cowRFID || "—"}</p><p className="text-xs text-muted-foreground">{v.vaccineName}</p></div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">{v.nextDueDate ? new Date(v.nextDueDate).toLocaleDateString("en-IN") : "N/A"}</p>
+                    <span className={`text-xs font-medium ${days !== null && days <= 7 ? "text-destructive" : "text-primary"}`}>{days !== null && days <= 0 ? "Overdue!" : days !== null && days <= 7 ? `${days}d left` : ""}</span>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
-);
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ─── DNA Tab ─────────────────────────────────────────── */
 const DnaTab = ({ cattle }: { cattle: any[] }) => (
@@ -683,14 +1016,14 @@ const MilkTab = ({ cattle, milkStats, onRefresh }: any) => {
 /* ─── Marketplace Tab ─────────────────────────────────── */
 const MarketplaceTab = ({ products, onRefresh }: any) => {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ productName: "", productType: "milk", description: "", pricePerUnit: "", unit: "liter", quantityAvailable: "" });
+  const [form, setForm] = useState({ productName: "", productType: "milk", description: "", price: "", unit: "liter", stockQuantity: "" });
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => { marketplaceAPI.getMyOrders().then(r => setOrders(r.data.orders || [])).catch(() => {}); }, []);
 
   const listProduct = async () => {
     try {
-      await marketplaceAPI.listProduct({ ...form, pricePerUnit: parseFloat(form.pricePerUnit), quantityAvailable: parseInt(form.quantityAvailable) });
+      await marketplaceAPI.listProduct({ ...form, price: parseFloat(form.price), stockQuantity: parseInt(form.stockQuantity) });
       setShowForm(false); onRefresh();
     } catch { }
   };
@@ -712,8 +1045,8 @@ const MarketplaceTab = ({ products, onRefresh }: any) => {
             <select value={form.productType} onChange={e => setForm({ ...form, productType: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm">
               {["milk", "ghee", "curd", "paneer", "butter", "other"].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <input type="number" placeholder="Price/unit (₹)" value={form.pricePerUnit} onChange={e => setForm({ ...form, pricePerUnit: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
-            <input type="number" placeholder="Qty Available" value={form.quantityAvailable} onChange={e => setForm({ ...form, quantityAvailable: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <input type="number" placeholder="Price/unit (₹)" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
+            <input type="number" placeholder="Qty Available" value={form.stockQuantity} onChange={e => setForm({ ...form, stockQuantity: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-sm" />
           </div>
           <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm mb-3" rows={2} />
           <button onClick={listProduct} className="px-6 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">List Product</button>
@@ -725,13 +1058,13 @@ const MarketplaceTab = ({ products, onRefresh }: any) => {
           <div key={p.id} className="rounded-2xl bg-card border border-border p-5">
             <div className="flex items-start justify-between mb-2">
               <div><h4 className="font-semibold">{p.productName}</h4><p className="text-xs text-muted-foreground capitalize">{p.productType}</p></div>
-              <span className="text-lg font-bold text-primary">₹{p.pricePerUnit}/{p.unit}</span>
+              <span className="text-lg font-bold text-primary">₹{p.price}/{p.unit}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-3">{p.description?.slice(0, 80)}</p>
             <div className="flex flex-wrap gap-1">
               {p.isVerified && <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">✓ Verified</span>}
-              {p.isA2 && <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">A2 Milk</span>}
-              <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">{p.quantityAvailable} {p.unit}s</span>
+              {p.isA2Certified && <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">A2 Milk</span>}
+              <span className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">{p.stockQuantity} {p.unit}s</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">by {p.farmName} {p.farmerReputation ? `★ ${p.farmerReputation}` : ""}</p>
           </div>

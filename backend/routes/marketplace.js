@@ -4,7 +4,10 @@ const marketplaceController = require('../controllers/marketplaceController');
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
 
-// Public: browse products (still requires auth for now)
+// Public: browse products (no auth required — for customer page)
+router.get('/public/products', marketplaceController.getProducts);
+
+// Authenticated: browse products
 router.get('/products', auth, marketplaceController.getProducts);
 
 // Farmer-only routes

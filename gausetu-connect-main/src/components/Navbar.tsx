@@ -18,6 +18,7 @@ const Navbar = () => {
           <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
           <a href="#phases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Roadmap</a>
           <a href="#roles" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">For You</a>
+          <Link to="/shop" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">🛒 Shop</Link>
           <Link to="/login" className="px-5 py-2 rounded-lg bg-gradient-saffron text-primary-foreground text-sm font-semibold shadow-saffron hover:opacity-90 transition-opacity">
             Login
           </Link>
@@ -33,6 +34,7 @@ const Navbar = () => {
           <a href="#features" onClick={() => setOpen(false)} className="block text-sm font-medium text-muted-foreground">Features</a>
           <a href="#phases" onClick={() => setOpen(false)} className="block text-sm font-medium text-muted-foreground">Roadmap</a>
           <a href="#roles" onClick={() => setOpen(false)} className="block text-sm font-medium text-muted-foreground">For You</a>
+          <Link to="/shop" onClick={() => setOpen(false)} className="block text-sm font-medium text-muted-foreground">🛒 Shop</Link>
           <Link to="/login" className="block px-5 py-2 rounded-lg bg-gradient-saffron text-primary-foreground text-sm font-semibold text-center">
             Login
           </Link>
