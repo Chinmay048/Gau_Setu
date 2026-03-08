@@ -30,17 +30,32 @@ try {
 
 // Middleware - CORS Configuration
 // Parse frontend URLs from environment or use defaults
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5000',
+  'https://Chinmay048.github.io',
+  process.env.FRONTEND_URL || ''
+]
+  .filter(Boolean)
   .map(url => url.trim());
 
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    // Check if origin matches any allowed origin
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      // Exact match or subdomain match
+      return origin === allowedOrigin || origin.endsWith(allowedOrigin);
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
-      // Log CORS rejection for debugging
       console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
       console.log(`✓ Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(null, false);
