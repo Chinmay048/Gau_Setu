@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { marketplaceAPI, insuranceAPI, transferAPI } from "@/lib/api";
 
 /* ─── Public Customer Page ────────────────────────────────
    Browse dairy products, insurance plans, verify cattle
@@ -66,7 +64,7 @@ const CustomerPage = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/marketplace/public/products`);
+      const res = await marketplaceAPI.getPublicProducts();
       setProducts(res.data.products || []);
     } catch { setProducts([]); }
     finally { setLoading(false); }
@@ -74,14 +72,14 @@ const CustomerPage = () => {
 
   const loadPlans = async () => {
     try {
-      const res = await axios.get(`${API}/insurance/public/plans`);
+      const res = await insuranceAPI.getPublicPlans();
       setPlans(res.data.plans || []);
     } catch { setPlans([]); }
   };
 
   const loadRecentTransfers = async () => {
     try {
-      const res = await axios.get(`${API}/transfer/public/recent`);
+      const res = await transferAPI.getRecentPublic();
       setRecentTransfers(res.data.transfers || []);
     } catch { setRecentTransfers([]); }
   };
@@ -91,7 +89,7 @@ const CustomerPage = () => {
     setVerifyError("");
     setCattle(null);
     try {
-      const res = await axios.get(`${API}/transfer/public/verify/${encodeURIComponent(rfid.trim())}`);
+      const res = await transferAPI.verifyCattlePublic(rfid.trim());
       setCattle(res.data.cattle);
     } catch (err: any) {
       setVerifyError(err.response?.data?.message || "Cattle not found");

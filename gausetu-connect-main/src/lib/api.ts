@@ -103,6 +103,10 @@ export const milkAPI = {
 
 // ─── Marketplace ─────────────────────────────────────────
 export const marketplaceAPI = {
+  // Public endpoints (no auth required)
+  getPublicProducts: (params?: any) => apiClient.get('/marketplace/public/products', { params }),
+  
+  // Authenticated endpoints (token required)
   listProduct: (data: any) => apiClient.post('/marketplace/products', data),
   getProducts: (params?: any) => apiClient.get('/marketplace/products', { params }),
   getMyProducts: () => apiClient.get('/marketplace/products/my'),
@@ -115,6 +119,10 @@ export const marketplaceAPI = {
 
 // ─── Insurance ───────────────────────────────────────────
 export const insuranceAPI = {
+  // Public endpoints (no auth required)
+  getPublicPlans: () => apiClient.get('/insurance/public/plans'),
+  
+  // Authenticated endpoints (token required)
   checkEligibility: (cowId: string) => apiClient.get(`/insurance/eligibility/${cowId}`),
   purchasePolicy: (data: any) => apiClient.post('/insurance/purchase', data),
   fileClaim: (data: any) => apiClient.post('/insurance/claim', data),
@@ -124,6 +132,11 @@ export const insuranceAPI = {
 
 // ─── Transfer ────────────────────────────────────────────
 export const transferAPI = {
+  // Public endpoints (no auth required)
+  getRecentPublic: () => apiClient.get('/transfer/public/recent'),
+  verifyCattlePublic: (rfid: string) => apiClient.get(`/transfer/public/verify/${encodeURIComponent(rfid)}`),
+  
+  // Authenticated endpoints (token required)
   initiate: (data: any) => apiClient.post('/transfer/initiate', data),
   accept: (transferId: string) => apiClient.put(`/transfer/${transferId}/accept`),
   reject: (transferId: string) => apiClient.put(`/transfer/${transferId}/reject`),
