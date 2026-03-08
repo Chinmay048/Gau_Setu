@@ -1,30 +1,24 @@
-# Vercel Backend Configuration
-# Place this file in the backend directory as vercel.json
-
 {
   "version": 2,
-  "buildCommand": "npm run build || npm install",
+  "buildCommand": "npm install",
   "installCommand": "npm install",
   "env": {
-    "NODE_ENV": "production",
-    "JWT_SECRET": "@JWT_SECRET",
-    "FRONTEND_URL": "@FRONTEND_URL"
+    "NODE_ENV": "production"
   },
   "envDescription": {
-    "JWT_SECRET": "JWT secret for token generation",
-    "FRONTEND_URL": "Frontend domain for CORS"
+    "JWT_SECRET": "JWT secret for token generation (set in Vercel dashboard)",
+    "FRONTEND_URL": "Frontend domain for CORS (set in Vercel dashboard)"
   },
   "builds": [
     {
-      "src": "server.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/api/index.js"
     }
-  ],
-  "crons": []
+  ]
 }
