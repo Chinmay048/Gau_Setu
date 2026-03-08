@@ -37,8 +37,7 @@ jobs:
       - name: Build frontend
         working-directory: ./gausetu-connect-main
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          BASE_URL: /Gau_Setu/
+          NODE_ENV: production
         run: npm run build
 
       - name: Upload artifact

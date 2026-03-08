@@ -48,37 +48,8 @@ try {
 }
 
 // Middleware - CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5000',
-  'https://Chinmay048.github.io',
-  process.env.FRONTEND_URL || ''
-]
-  .filter(Boolean)
-  .map(url => url.trim());
-
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    
-    // Check if origin matches any allowed origin
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      // Exact match or subdomain match
-      return origin === allowedOrigin || origin.endsWith(allowedOrigin);
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
-      console.log(`✓ Allowed origins: ${allowedOrigins.join(', ')}`);
-      callback(null, false);
-    }
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
