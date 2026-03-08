@@ -5,10 +5,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "envDescription": {
-    "JWT_SECRET": "JWT secret for token generation (set in Vercel dashboard)",
-    "FRONTEND_URL": "Frontend domain for CORS (set in Vercel dashboard)"
-  },
   "builds": [
     {
       "src": "api/index.js",
